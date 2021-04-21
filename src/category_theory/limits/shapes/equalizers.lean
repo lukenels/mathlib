@@ -5,6 +5,8 @@ Authors: Scott Morrison, Markus Himmel
 -/
 import category_theory.epi_mono
 import category_theory.limits.has_limits
+import category_theory.limits.shapes.wide_equalizers
+import category_theory.limits.shapes.binary_products
 
 /-!
 # Equalizers and coequalizers
@@ -54,43 +56,27 @@ local attribute [tidy] tactic.case_bash
 universes v u u₂
 
 /-- The type of objects for the diagram indexing a (co)equalizer. -/
-@[derive decidable_eq, derive inhabited] inductive walking_parallel_pair : Type v
-| zero | one
-
-open walking_parallel_pair
+@[derive [decidable_eq, inhabited, category]] def walking_parallel_pair : Type v :=
+walking_parallel_family walking_pair
 
 /-- The type family of morphisms for the diagram indexing a (co)equalizer. -/
-@[derive decidable_eq] inductive walking_parallel_pair_hom :
-  walking_parallel_pair → walking_parallel_pair → Type v
-| left : walking_parallel_pair_hom zero one
-| right : walking_parallel_pair_hom zero one
-| id : Π X : walking_parallel_pair.{v}, walking_parallel_pair_hom X X
+@[derive decidable_eq] def walking_parallel_pair.hom :
+  walking_parallel_pair → walking_parallel_pair → Type v :=
+walking_parallel_family.hom _
+
+open walking_parallel_family
+
+abbreviation walking_parallel_pair.hom.left : (zero : walking_parallel_pair) ⟶ one :=
+hom.line walking_pair.left
+
+abbreviation walking_parallel_pair.hom.right : (zero : walking_parallel_pair) ⟶ one :=
+hom.line walking_pair.right
 
 /-- Satisfying the inhabited linter -/
-instance : inhabited (walking_parallel_pair_hom zero one) :=
-{ default := walking_parallel_pair_hom.left }
+instance : inhabited (walking_parallel_pair.hom zero one) :=
+{ default := walking_parallel_pair.hom.left }
 
-open walking_parallel_pair_hom
-
-/-- Composition of morphisms in the indexing diagram for (co)equalizers. -/
-def walking_parallel_pair_hom.comp :
-  Π (X Y Z : walking_parallel_pair)
-    (f : walking_parallel_pair_hom X Y) (g : walking_parallel_pair_hom Y Z),
-    walking_parallel_pair_hom X Z
-  | _ _ _ (id _) h := h
-  | _ _ _ left   (id one) := left
-  | _ _ _ right  (id one) := right
-.
-
-instance walking_parallel_pair_hom_category : small_category walking_parallel_pair :=
-{ hom  := walking_parallel_pair_hom,
-  id   := walking_parallel_pair_hom.id,
-  comp := walking_parallel_pair_hom.comp }
-
-@[simp]
-lemma walking_parallel_pair_hom_id (X : walking_parallel_pair) :
-  walking_parallel_pair_hom.id X = 𝟙 X :=
-rfl
+open walking_parallel_pair.hom
 
 variables {C : Type u} [category.{v} C]
 variables {X Y : C}
@@ -98,17 +84,7 @@ variables {X Y : C}
 /-- `parallel_pair f g` is the diagram in `C` consisting of the two morphisms `f` and `g` with
     common domain and codomain. -/
 def parallel_pair (f g : X ⟶ Y) : walking_parallel_pair.{v} ⥤ C :=
-{ obj := λ x, match x with
-  | zero := X
-  | one := Y
-  end,
-  map := λ x y h, match x, y, h with
-  | _, _, (id _) := 𝟙 _
-  | _, _, left := f
-  | _, _, right := g
-  end,
-  -- `tidy` can cope with this, but it's too slow:
-  map_comp' := begin rintros (⟨⟩|⟨⟩) (⟨⟩|⟨⟩) (⟨⟩|⟨⟩) ⟨⟩⟨⟩; { unfold_aux, simp; refl }, end, }.
+parallel_family ((λ t, walking_pair.cases_on t f g) : _ → (X ⟶ Y))
 
 @[simp] lemma parallel_pair_obj_zero (f g : X ⟶ Y) : (parallel_pair f g).obj zero = X := rfl
 @[simp] lemma parallel_pair_obj_one (f g : X ⟶ Y) : (parallel_pair f g).obj one = Y := rfl
@@ -119,9 +95,7 @@ def parallel_pair (f g : X ⟶ Y) : walking_parallel_pair.{v} ⥤ C :=
 @[simp] lemma parallel_pair_functor_obj
   {F : walking_parallel_pair ⥤ C} (j : walking_parallel_pair) :
   (parallel_pair (F.map left) (F.map right)).obj j = F.obj j :=
-begin
-  cases j; refl
-end
+by { cases j; refl }
 
 /-- Every functor indexing a (co)equalizer is naturally isomorphic (actually, equal) to a
     `parallel_pair` -/
@@ -131,10 +105,10 @@ def diagram_iso_parallel_pair (F : walking_parallel_pair ⥤ C) :
 nat_iso.of_components (λ j, eq_to_iso $ by cases j; tidy) $ by tidy
 
 /-- A fork on `f` and `g` is just a `cone (parallel_pair f g)`. -/
-abbreviation fork (f g : X ⟶ Y) := cone (parallel_pair f g)
+abbreviation fork (f g : X ⟶ Y) := trident ((λ t, walking_pair.cases_on t f g) : _ → (X ⟶ Y))
 
 /-- A cofork on `f` and `g` is just a `cocone (parallel_pair f g)`. -/
-abbreviation cofork (f g : X ⟶ Y) := cocone (parallel_pair f g)
+abbreviation cofork (f g : X ⟶ Y) := cotrident ((λ t, walking_pair.cases_on t f g) : _ → (X ⟶ Y))
 
 variables {f g : X ⟶ Y}
 
@@ -151,39 +125,29 @@ abbreviation cofork.π (t : cofork f g) := t.ι.app one
 @[simp] lemma fork.ι_eq_app_zero (t : fork f g) : t.ι = t.π.app zero := rfl
 @[simp] lemma cofork.π_eq_app_one (t : cofork f g) : t.π = t.ι.app one := rfl
 
-@[simp, reassoc] lemma fork.app_zero_left (s : fork f g) :
-  s.π.app zero ≫ f = s.π.app one :=
-by rw [←s.w left, parallel_pair_map_left]
+@[simp, reassoc] lemma fork.app_zero_left (s : fork f g) : s.π.app zero ≫ f = s.π.app one :=
+s.app_zero walking_pair.left
 
-@[simp, reassoc] lemma fork.app_zero_right (s : fork f g) :
-  s.π.app zero ≫ g = s.π.app one :=
-by rw [←s.w right, parallel_pair_map_right]
+@[simp, reassoc] lemma fork.app_zero_right (s : fork f g) : s.π.app zero ≫ g = s.π.app one :=
+s.app_zero walking_pair.right
 
-@[simp, reassoc] lemma cofork.left_app_one (s : cofork f g) :
-  f ≫ s.ι.app one = s.ι.app zero :=
-by rw [←s.w left, parallel_pair_map_left]
+@[simp, reassoc] lemma cofork.left_app_one (s : cofork f g) : f ≫ s.ι.app one = s.ι.app zero :=
+s.app_one walking_pair.left
 
-@[simp, reassoc] lemma cofork.right_app_one (s : cofork f g) :
-  g ≫ s.ι.app one = s.ι.app zero :=
-by rw [←s.w right, parallel_pair_map_right]
+@[simp, reassoc] lemma cofork.right_app_one (s : cofork f g) : g ≫ s.ι.app one = s.ι.app zero :=
+s.app_one walking_pair.right
 
 /-- A fork on `f g : X ⟶ Y` is determined by the morphism `ι : P ⟶ X` satisfying `ι ≫ f = ι ≫ g`.
 -/
 @[simps]
 def fork.of_ι {P : C} (ι : P ⟶ X) (w : ι ≫ f = ι ≫ g) : fork f g :=
-{ X := P,
-  π :=
-  { app := λ X, walking_parallel_pair.cases_on X ι (ι ≫ f),
-    naturality' := λ i j f, by cases f; dsimp; simp [w] } } -- See note [dsimp, simp]
+trident.of_ι ι (by tidy)
 
 /-- A cofork on `f g : X ⟶ Y` is determined by the morphism `π : Y ⟶ P` satisfying
     `f ≫ π = g ≫ π`. -/
 @[simps]
 def cofork.of_π {P : C} (π : Y ⟶ P) (w : f ≫ π = g ≫ π) : cofork f g :=
-{ X := P,
-  ι :=
-  { app := λ X, walking_parallel_pair.cases_on X (f ≫ π) π,
-    naturality' := λ i j f, by { cases f; dsimp; simp [w] } } } -- See note [dsimp, simp]
+cotrident.of_π π (by tidy)
 
 lemma fork.ι_of_ι {P : C} (ι : P ⟶ X) (w : ι ≫ f = ι ≫ g) :
   (fork.of_ι ι w).ι = ι := rfl
@@ -241,10 +205,7 @@ def fork.is_limit.mk (t : fork f g)
   (uniq : ∀ (s : fork f g) (m : s.X ⟶ t.X)
     (w : ∀ j : walking_parallel_pair, m ≫ t.π.app j = s.π.app j), m = lift s) :
   is_limit t :=
-{ lift := lift,
-  fac' := λ s j, walking_parallel_pair.cases_on j (fac s) $
-    by erw [←s.w left, ←t.w left, ←category.assoc, fac]; refl,
-  uniq' := uniq }
+trident.is_limit.mk t lift fac uniq
 
 /-- This is another convenient method to verify that a fork is a limit cone. It
     only asks for a proof of facts that carry any mathematical content, and allows access to the
@@ -252,10 +213,7 @@ def fork.is_limit.mk (t : fork f g)
 def fork.is_limit.mk' {X Y : C} {f g : X ⟶ Y} (t : fork f g)
   (create : Π (s : fork f g), {l // l ≫ t.ι = s.ι ∧ ∀ {m}, m ≫ t.ι = s.ι → m = l}) :
 is_limit t :=
-fork.is_limit.mk t
-  (λ s, (create s).1)
-  (λ s, (create s).2.1)
-  (λ s m w, (create s).2.2 (w zero))
+trident.is_limit.mk' t create
 
 /-- This is a slightly more convenient method to verify that a cofork is a colimit cocone. It
     only asks for a proof of facts that carry any mathematical content -/
@@ -265,10 +223,7 @@ def cofork.is_colimit.mk (t : cofork f g)
   (uniq : ∀ (s : cofork f g) (m : t.X ⟶ s.X)
     (w : ∀ j : walking_parallel_pair, t.ι.app j ≫ m = s.ι.app j), m = desc s) :
   is_colimit t :=
-{ desc := desc,
-  fac' := λ s j, walking_parallel_pair.cases_on j
-    (by erw [←s.w left, ←t.w left, category.assoc, fac]; refl) (fac s),
-  uniq' := uniq }
+cotrident.is_colimit.mk t desc fac uniq
 
 /-- This is another convenient method to verify that a fork is a limit cone. It
     only asks for a proof of facts that carry any mathematical content, and allows access to the
@@ -276,10 +231,7 @@ def cofork.is_colimit.mk (t : cofork f g)
 def cofork.is_colimit.mk' {X Y : C} {f g : X ⟶ Y} (t : cofork f g)
   (create : Π (s : cofork f g), {l : t.X ⟶ s.X // t.π ≫ l = s.π ∧ ∀ {m}, t.π ≫ m = s.π → m = l}) :
 is_colimit t :=
-cofork.is_colimit.mk t
-  (λ s, (create s).1)
-  (λ s, (create s).2.1)
-  (λ s m w, (create s).2.2 (w one))
+cotrident.is_colimit.mk' t create
 
 /--
 Given a limit cone for the pair `f g : X ⟶ Y`, for any `Z`, morphisms from `Z` to its point are in
@@ -331,10 +283,15 @@ lemma cofork.is_colimit.hom_iso_natural {X Y : C} {f g : X ⟶ Y} {t : cofork f 
     which you may find to be an easier way of achieving your goal. -/
 def cone.of_fork
   {F : walking_parallel_pair ⥤ C} (t : fork (F.map left) (F.map right)) : cone F :=
-{ X := t.X,
-  π :=
-  { app := λ X, t.π.app X ≫ eq_to_hom (by tidy),
-    naturality' := λ j j' g, by { cases j; cases j'; cases g; dsimp; simp } } }
+cone.of_trident
+begin
+  convert t,
+
+end
+-- { X := t.X
+--   π :=
+--   { app := λ X, t.π.app X ≫ eq_to_hom (by tidy),
+--     naturality' := λ j j' g, begin  end } }
 
 /-- This is a helper construction that can be useful when verifying that a category has all
     coequalizers. Given `F : walking_parallel_pair ⥤ C`, which is really the same as

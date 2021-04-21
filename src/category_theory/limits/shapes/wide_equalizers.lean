@@ -488,7 +488,7 @@ limit.lift_π _ _
 
 /-- A morphism `k : W ⟶ X` satisfying `k ≫ f = k ≫ g` induces a morphism `l : W ⟶ equalizer f g`
     satisfying `l ≫ equalizer.ι f g = k`. -/
-def equalizer.lift' [nonempty J] {W : C} (k : W ⟶ X) (h : ∀ j₁ j₂, k ≫ f j₁ = k ≫ f j₂) :
+def wide_equalizer.lift' [nonempty J] {W : C} (k : W ⟶ X) (h : ∀ j₁ j₂, k ≫ f j₁ = k ≫ f j₂) :
   {l : W ⟶ wide_equalizer f // l ≫ wide_equalizer.ι f = k} :=
 ⟨wide_equalizer.lift k h, wide_equalizer.lift_ι _ _⟩
 
@@ -499,7 +499,7 @@ def equalizer.lift' [nonempty J] {W : C} (k : W ⟶ X) (h : ∀ j₁ j₂, k ≫
 trident.is_limit.hom_ext (limit.is_limit _) h
 
 /-- An equalizer morphism is a monomorphism -/
-instance equalizer.ι_mono [nonempty J] : mono (wide_equalizer.ι f) :=
+instance wide_equalizer.ι_mono [nonempty J] : mono (wide_equalizer.ι f) :=
 { right_cancellation := λ Z h k w, wide_equalizer.hom_ext w }
 
 end
@@ -507,7 +507,8 @@ end
 section
 variables {f}
 /-- The equalizer morphism in any limit cone is a monomorphism. -/
-lemma mono_of_is_limit_parallel_pair [nonempty J] {c : cone (parallel_family f)} (i : is_limit c) :
+lemma mono_of_is_limit_parallel_family [nonempty J] {c : cone (parallel_family f)}
+  (i : is_limit c) :
   mono (trident.ι c) :=
 { right_cancellation := λ Z h k w, trident.is_limit.hom_ext i w }
 
@@ -571,14 +572,14 @@ def wide_coequalizer.desc' [nonempty J] {W : C} (k : Y ⟶ W) (h : ∀ j₁ j₂
   {l : wide_coequalizer f ⟶ W // wide_coequalizer.π f ≫ l = k} :=
 ⟨wide_coequalizer.desc k h, wide_coequalizer.π_desc _ _⟩
 
-/-- Two maps from a coequalizer are equal if they are equal when composed with the coequalizer
-    map -/
+/-- Two maps from a wide coequalizer are equal if they are equal when composed with the wide
+    coequalizer map -/
 @[ext] lemma wide_coequalizer.hom_ext [nonempty J] {W : C} {k l : wide_coequalizer f ⟶ W}
   (h : wide_coequalizer.π f ≫ k = wide_coequalizer.π f ≫ l) : k = l :=
 cotrident.is_colimit.hom_ext (colimit.is_colimit _) h
 
-/-- A coequalizer morphism is an epimorphism -/
-instance coequalizer.π_epi [nonempty J] : epi (wide_coequalizer.π f) :=
+/-- A wide coequalizer morphism is an epimorphism -/
+instance wide_coequalizer.π_epi [nonempty J] : epi (wide_coequalizer.π f) :=
 { left_cancellation := λ Z h k w, wide_coequalizer.hom_ext w }
 
 end
@@ -586,8 +587,8 @@ end
 section
 variables {f}
 
-/-- The coequalizer morphism in any colimit cocone is an epimorphism. -/
-lemma epi_of_is_colimit_parallel_pair [nonempty J] {c : cocone (parallel_family f)}
+/-- The wide coequalizer morphism in any colimit cocone is an epimorphism. -/
+lemma epi_of_is_colimit_parallel_chunk [nonempty J] {c : cocone (parallel_family f)}
   (i : is_colimit c) :
   epi (c.ι.app one) :=
 { left_cancellation := λ Z h k w, cotrident.is_colimit.hom_ext i w }
@@ -596,19 +597,19 @@ end
 
 variables (C)
 
-/-- `has_equalizers` represents a choice of equalizer for every pair of morphisms -/
+/-- `has_wide_equalizers` represents a choice of wide equalizer for every family of morphisms -/
 abbreviation has_wide_equalizers := Π J, has_limits_of_shape (walking_parallel_family J) C
 
-/-- `has_coequalizers` represents a choice of coequalizer for every pair of morphisms -/
+/-- `has_wide_coequalizers` represents a choice of wide coequalizer for every family of morphisms -/
 abbreviation has_wide_coequalizers := Π J, has_colimits_of_shape (walking_parallel_family J) C
 
-/-- If `C` has all limits of diagrams `parallel_pair f g`, then it has all equalizers -/
-lemma has_equalizers_of_has_limit_parallel_pair
+/-- If `C` has all limits of diagrams `parallel_family f g`, then it has all equalizers -/
+lemma has_wide_equalizers_of_has_limit_parallel_family
   [Π {J} {X Y : C} {f : J → (X ⟶ Y)}, has_limit (parallel_family f)] : has_wide_equalizers C :=
 λ J, { has_limit := λ F, has_limit_of_iso (diagram_iso_parallel_family F).symm }
 
-/-- If `C` has all colimits of diagrams `parallel_pair f g`, then it has all coequalizers -/
-lemma has_coequalizers_of_has_colimit_parallel_pair
+/-- If `C` has all colimits of diagrams `parallel_family f g`, then it has all coequalizers -/
+lemma has_wide_coequalizers_of_has_colimit_parallel_family
   [Π {J} {X Y : C} {f : J → (X ⟶ Y)}, has_colimit (parallel_family f)] : has_wide_coequalizers C :=
 λ J, { has_colimit := λ F, has_colimit_of_iso (diagram_iso_parallel_family F) }
 
