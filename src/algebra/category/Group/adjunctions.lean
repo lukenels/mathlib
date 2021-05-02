@@ -101,17 +101,6 @@ instance : is_right_adjoint (forget Group.{u}) := ⟨_, adj⟩
 instance : representably_concrete Group.{u} :=
 { out := representably_concrete_of_left_adjoint _ (forget Group.{u}) }
 
-instance : monadic_right_adjoint (forget Group.{u}) :=
-begin
-  -- let t : Π ⦃A B : Group⦄ (f g : A ⟶ B) [_inst_9 : (forget Group).is_split_pair f g],
-  --   limits.reflects_colimit (limits.parallel_pair f g) (forget Group),
-  -- { introsI A B f g _,
-  --   refine ⟨λ c t, _⟩,
-
-  -- },
-  exact @monad.monadic_of_has_preserves_reflects_G_split_coequalizers _ _ _ _ _ _ _ _ _,
-end
-
 end Group
 
 section abelianization
