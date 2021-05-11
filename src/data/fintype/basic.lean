@@ -763,6 +763,19 @@ instance (α : Type u) (β : Type v) [fintype α] [fintype β] : fintype (α ⊕
   ((equiv.sum_equiv_sigma_bool _ _).symm.trans
     (equiv.sum_congr equiv.ulift equiv.ulift))
 
+section finset
+
+/-! ### `fintype (s : finset α)` -/
+
+instance finset.fintype_coe_sort {α : Type u} (s : finset α) : fintype s :=
+⟨s.attach, s.mem_attach⟩
+
+@[simp] lemma finset.univ_eq_attach {α : Type u} (s : finset α) :
+  (univ : finset s) = s.attach :=
+rfl
+
+end finset
+
 namespace fintype
 variables [fintype α] [fintype β]
 
