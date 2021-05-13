@@ -5,6 +5,7 @@ Authors: Bhavik Mehta
 -/
 import category_theory.epi_mono
 import category_theory.limits.has_limits
+import category_theory.limits.shapes.equalizers
 
 /-!
 # Wide equalizers and wide coequalizers
@@ -28,8 +29,8 @@ Each of these has a dual.
 
 ## Main statements
 
-* `equalizer.ι_mono` states that every equalizer map is a monomorphism
-* `is_iso_limit_cone_parallel_pair_of_self` states that the identity on the domain of `f` is an
+* `wide_equalizer.ι_mono` states that every wide_equalizer map is a monomorphism
+* `is_iso_limit_cone_parallel_family_of_self` states that the identity on the domain of `f` is an
   equalizer of `f` and `f`.
 
 ## Implementation notes
@@ -121,6 +122,31 @@ def parallel_family : walking_parallel_family J ⥤ C :=
 def diagram_iso_parallel_family (F : walking_parallel_family J ⥤ C) :
   F ≅ parallel_family (λ j, F.map (line j)) :=
 nat_iso.of_components (λ j, eq_to_iso $ by cases j; tidy) $ by tidy
+
+@[simps]
+def walking_parallel_family_equiv_walking_parallel_pair :
+  walking_parallel_family.{v} (ulift bool) ≌ walking_parallel_pair.{v} :=
+{ functor := parallel_family
+      (λ p, cond p.down walking_parallel_pair_hom.left walking_parallel_pair_hom.right),
+  inverse := parallel_pair (line (ulift.up tt)) (line (ulift.up ff)),
+  unit_iso :=
+  begin
+    apply nat_iso.of_components _ _,
+    { intro X,
+      apply eq_to_iso,
+      cases X;
+      refl, },
+    { tidy }
+  end,
+  counit_iso :=
+  begin
+    apply nat_iso.of_components _ _,
+    { intro X,
+      apply eq_to_iso,
+      cases X;
+      refl },
+    { tidy },
+  end }
 
 /-- A trident on `f` is just a `cone (parallel_family f)`. -/
 abbreviation trident := cone (parallel_family f)
@@ -612,5 +638,13 @@ lemma has_wide_equalizers_of_has_limit_parallel_family
 lemma has_wide_coequalizers_of_has_colimit_parallel_family
   [Π {J} {X Y : C} {f : J → (X ⟶ Y)}, has_colimit (parallel_family f)] : has_wide_coequalizers C :=
 λ J, { has_colimit := λ F, has_colimit_of_iso (diagram_iso_parallel_family F) }
+
+@[priority 10]
+instance has_equalizers_of_has_wide_equalizers [has_wide_equalizers C] : has_equalizers C :=
+has_limits_of_shape_of_equivalence walking_parallel_family_equiv_walking_parallel_pair
+
+@[priority 10]
+instance has_coequalizers_of_has_wide_coequalizers [has_wide_coequalizers C] : has_coequalizers C :=
+has_colimits_of_shape_of_equivalence walking_parallel_family_equiv_walking_parallel_pair
 
 end category_theory.limits

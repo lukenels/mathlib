@@ -18,8 +18,6 @@ open limits
 variables {J : Type v}
 variables {C : Type u} [category.{v} C]
 
-open limits.walking_parallel_chunk
-
 /--
 If `C` has (small) products and a small weakly initial set of objects, then it has a weakly initial
 object.
@@ -31,13 +29,13 @@ lemma has_weakly_initial_of_weakly_initial_set_and_has_products (C : Type u) [ca
 ⟨∏ B, λ X, ⟨pi.π _ _ ≫ (hB X).some_spec.some⟩⟩
 
 /--
-If `C` has (small) limits and a weakly initial object, then it has an initial object.
+If `C` has (small) wide equalizers and a weakly initial object, then it has an initial object.
 
 The initial object is constructed as the wide equalizer of all endomorphisms on the given weakly
 initial object.
 -/
 lemma has_initial_of_weakly_initial_and_has_wide_equalizers (C : Type u) [category.{v} C]
-  [has_limits C] (T : C) (hT : ∀ X, nonempty (T ⟶ X)) :
+  [has_wide_equalizers C] (T : C) (hT : ∀ X, nonempty (T ⟶ X)) :
   has_initial C :=
 begin
   let endos := T ⟶ T,
@@ -59,35 +57,35 @@ begin
   exactI has_initial_of_unique (wide_equalizer (id : endos → endos)),
 end
 
-/--
-If `C` has (small) limits and a small weakly initial set of objects, then it has an initial object.
--/
-lemma has_initial_of_weakly_initial_and_has_limits (C : Type u) [category.{v} C] [has_limits C]
-  {ι : Type v} (B : ι → C) (weakly_initial : ∀ (A : C), ∃ i, nonempty (B i ⟶ A)) :
-  has_initial C :=
-begin
-  -- have fromP : Π (X : C), (∏ B ⟶ X),
-  -- { intro X,
-  --   exact pi.π _ (weakly_initial X).some ≫ (weakly_initial X).some_spec.some },
-  -- let endos := ∏ B ⟶ ∏ B,
-  -- let i := wide_equalizer.ι (id : endos → endos),
-  -- haveI : nonempty endos := ⟨𝟙 _⟩,
-  -- haveI : ∀ (X : C), inhabited (wide_equalizer id ⟶ X) := λ X, ⟨i ≫ fromP X⟩,
-  -- have : ∀ (X : C), unique (wide_equalizer (id : endos → endos) ⟶ X),
-  -- { intro X,
-  --   refine ⟨by apply_instance, λ a, _⟩,
-  --   let E := equalizer a (default (wide_equalizer id ⟶ X)),
-  --   let e : E ⟶ wide_equalizer id := equalizer.ι _ _,
-  --   let h : ∏ B ⟶ E := fromP _,
-  --   have : ((i ≫ h) ≫ e) ≫ i = i ≫ 𝟙 _,
-  --   { rw [category.assoc, category.assoc],
-  --     apply wide_equalizer.condition (id : endos → endos) (h ≫ e ≫ i) },
-  --   rw [category.comp_id, cancel_mono_id i] at this,
-  --   haveI : split_epi e := ⟨i ≫ h, this⟩,
-  --   rw ← cancel_epi e,
-  --   apply equalizer.condition },
-  -- exactI has_initial_of_unique (wide_equalizer (id : endos → endos)),
-end
+-- /--
+-- If `C` has (small) limits and a small weakly initial set of objects, then it has an initial object.
+-- -/
+-- lemma has_initial_of_weakly_initial_and_has_limits (C : Type u) [category.{v} C] [has_limits C]
+--   {ι : Type v} (B : ι → C) (weakly_initial : ∀ (A : C), ∃ i, nonempty (B i ⟶ A)) :
+--   has_initial C :=
+-- begin
+--   -- have fromP : Π (X : C), (∏ B ⟶ X),
+--   -- { intro X,
+--   --   exact pi.π _ (weakly_initial X).some ≫ (weakly_initial X).some_spec.some },
+--   -- let endos := ∏ B ⟶ ∏ B,
+--   -- let i := wide_equalizer.ι (id : endos → endos),
+--   -- haveI : nonempty endos := ⟨𝟙 _⟩,
+--   -- haveI : ∀ (X : C), inhabited (wide_equalizer id ⟶ X) := λ X, ⟨i ≫ fromP X⟩,
+--   -- have : ∀ (X : C), unique (wide_equalizer (id : endos → endos) ⟶ X),
+--   -- { intro X,
+--   --   refine ⟨by apply_instance, λ a, _⟩,
+--   --   let E := equalizer a (default (wide_equalizer id ⟶ X)),
+--   --   let e : E ⟶ wide_equalizer id := equalizer.ι _ _,
+--   --   let h : ∏ B ⟶ E := fromP _,
+--   --   have : ((i ≫ h) ≫ e) ≫ i = i ≫ 𝟙 _,
+--   --   { rw [category.assoc, category.assoc],
+--   --     apply wide_equalizer.condition (id : endos → endos) (h ≫ e ≫ i) },
+--   --   rw [category.comp_id, cancel_mono_id i] at this,
+--   --   haveI : split_epi e := ⟨i ≫ h, this⟩,
+--   --   rw ← cancel_epi e,
+--   --   apply equalizer.condition },
+--   -- exactI has_initial_of_unique (wide_equalizer (id : endos → endos)),
+-- end
 
 /--
 The functor `G : D ⥤ C` satisfies the *solution set condition* if for every `A : C`, there is a
