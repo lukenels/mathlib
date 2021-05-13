@@ -6,6 +6,7 @@ Authors: Yury G. Kudryashov
 import topology.algebra.monoid
 import algebra.group.pi
 import algebra.group_with_zero.power
+import topology.homeomorph
 
 /-!
 # Topological group with zero
@@ -24,6 +25,9 @@ and `continuous`. As a special case, we provide `*.div_const` operations that re
 All lemmas about `(⁻¹)` use `inv'` in their names because lemmas without `'` are used for
 `topological_group`s. We also use `'` in the typeclass name `has_continuous_inv'` for the sake of
 consistency of notation.
+
+On a `group_with_zero` with continuous multiplication, we also define left and right multiplication
+as homeomorphisms.
 -/
 
 open_locale topological_space
@@ -164,6 +168,39 @@ continuous_on_fst.div continuous_on_snd $ λ _, id
 
 end div
 
+/-! ### Left and right multiplication as homeomorphisms -/
+
+namespace homeomorph
+
+variables [topological_space α] [group_with_zero α] [has_continuous_mul α]
+
+/-- Left multiplication by a nonzero element in a `group_with_zero` with continuous multiplication
+is a homeomorphism of the underlying type. -/
+protected def mul_left' (c : α) (hc : c ≠ 0) : α ≃ₜ α :=
+{ continuous_to_fun := continuous_mul_left _,
+  continuous_inv_fun := continuous_mul_left _,
+  .. equiv.mul_left' c hc }
+
+/-- Right multiplication by a nonzero element in a `group_with_zero` with continuous multiplication
+is a homeomorphism of the underlying type. -/
+protected def mul_right' (c : α) (hc : c ≠ 0) : α ≃ₜ α :=
+{ continuous_to_fun := continuous_mul_right _,
+  continuous_inv_fun := continuous_mul_right _,
+  .. equiv.mul_right' c hc }
+
+@[simp] lemma coe_mul_left' (c : α) (hc : c ≠ 0) : ⇑(homeomorph.mul_left' c hc) = (*) c := rfl
+
+@[simp] lemma mul_left'_symm_apply (c : α) (hc : c ≠ 0) :
+  ((homeomorph.mul_left' c hc).symm : α → α) = (*) c⁻¹ := rfl
+
+@[simp] lemma coe_mul_right' (c : α) (hc : c ≠ 0) :
+  ⇑(homeomorph.mul_right' c hc) = λ x, x * c := rfl
+
+@[simp] lemma mul_right'_symm_apply (c : α) (hc : c ≠ 0) :
+  ((homeomorph.mul_right' c hc).symm : α → α) = λ x, x * c⁻¹ := rfl
+
+end homeomorph
+
 section fpow
 
 variables [group_with_zero G₀] [topological_space G₀] [has_continuous_inv' G₀]
@@ -174,7 +211,7 @@ begin
   have : ∀ y : G₀, ∀ m : ℤ, 0 < m → tendsto (λ x, x ^ m) (𝓝 y) (𝓝 (y ^ m)),
   { assume y m hm,
     lift m to ℕ using (le_of_lt hm) with k,
-    simp only [fpow_coe_nat],
+    simp only [gpow_coe_nat],
     exact (continuous_pow k).continuous_at.tendsto },
   rcases lt_trichotomy m 0 with hm | hm | hm,
   { have hm' : 0 < - m := by rwa neg_pos,
