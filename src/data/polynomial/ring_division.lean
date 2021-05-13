@@ -17,7 +17,7 @@ This file starts looking like the ring theory of $ R[X] $
 -/
 
 noncomputable theory
-local attribute [instance, priority 100] classical.prop_decidable
+open_locale classical
 
 open finset
 
@@ -268,7 +268,7 @@ then
   begin
     assume a,
     conv_rhs { rw ← mul_div_by_monic_eq_iff_is_root.mpr hx },
-    rw [root_multiplicity_mul (mul_ne_zero (X_sub_C_ne_zero _) hdiv0),
+    rw [root_multiplicity_mul (mul_ne_zero (X_sub_C_ne_zero x) hdiv0),
         root_multiplicity_X_sub_C, ← htr a],
     split_ifs with ha,
     { rw [ha, count_cons_self, nat.succ_eq_add_one, add_comm] },
@@ -323,6 +323,14 @@ begin
   ext1 r,
   simp only [mem_roots hp, multiset.mem_to_finset, set.mem_set_of_eq, finset.mem_coe]
 end
+
+lemma exists_max_root [linear_order R] (p : polynomial R) (hp : p ≠ 0) :
+  ∃ x₀, ∀ x, p.is_root x → x ≤ x₀ :=
+set.exists_upper_bound_image _ _ $ not_not.mp (mt (eq_zero_of_infinite_is_root p) hp)
+
+lemma exists_min_root [linear_order R] (p : polynomial R) (hp : p ≠ 0) :
+  ∃ x₀, ∀ x, p.is_root x → x₀ ≤ x :=
+set.exists_lower_bound_image _ _ $ not_not.mp (mt (eq_zero_of_infinite_is_root p) hp)
 
 lemma eq_of_infinite_eval_eq {R : Type*} [integral_domain R]
   (p q : polynomial R) (h : set.infinite {x | eval x p = eval x q}) : p = q :=
@@ -440,7 +448,7 @@ calc coeff (p.comp q) (nat_degree p * nat_degree q)
   begin
     assume b hbs hbp,
     have hq0 : q ≠ 0, from λ hq0, hqd0 (by rw [hq0, nat_degree_zero]),
-    have : coeff p b ≠ 0,  by rwa finsupp.mem_support_iff at hbs,
+    have : coeff p b ≠ 0, by rwa mem_support_iff at hbs,
     refine coeff_eq_zero_of_degree_lt _,
     erw [degree_mul, degree_C this, degree_pow, zero_add, degree_eq_nat_degree hq0,
       ← with_bot.coe_nsmul, nsmul_eq_mul, with_bot.coe_lt_coe, nat.cast_id,
@@ -449,7 +457,7 @@ calc coeff (p.comp q) (nat_degree p * nat_degree q)
   end
   begin
     intro h, contrapose! hp0,
-    rw finsupp.mem_support_iff at h, push_neg at h,
+    rw mem_support_iff at h, push_neg at h,
     rwa ← leading_coeff_eq_zero,
   end
 ... = _ :
@@ -526,6 +534,17 @@ rfl
   (0 : polynomial R).root_set S = ∅ :=
 by rw [root_set_def, polynomial.map_zero, roots_zero, to_finset_zero, finset.coe_empty]
 
+@[simp] lemma root_set_C [integral_domain S] [algebra R S] (a : R) : (C a).root_set S = ∅ :=
+by rw [root_set_def, map_C, roots_C, multiset.to_finset_zero, finset.coe_empty]
+
+instance root_set_fintype {R : Type*} [integral_domain R] (p : polynomial R) (S : Type*)
+  [integral_domain S] [algebra R S] : fintype (p.root_set S) :=
+finset_coe.fintype _
+
+lemma root_set_finite {R : Type*} [integral_domain R] (p : polynomial R) (S : Type*)
+  [integral_domain S] [algebra R S] : (p.root_set S).finite :=
+⟨polynomial.root_set_fintype p S⟩
+
 end roots
 
 theorem is_unit_iff {f : polynomial R} : is_unit f ↔ ∃ r : R, is_unit r ∧ C r = f :=
@@ -537,7 +556,7 @@ theorem is_unit_iff {f : polynomial R} : is_unit f ↔ ∃ r : R, is_unit r ∧ 
 lemma coeff_coe_units_zero_ne_zero (u : units (polynomial R)) :
   coeff (u : polynomial R) 0 ≠ 0 :=
 begin
-  conv in (0) {rw [← nat_degree_coe_units u]},
+  conv in (0) { rw [← nat_degree_coe_units u] },
   rw [← leading_coeff, ne.def, leading_coeff_eq_zero],
   exact units.ne_zero _
 end

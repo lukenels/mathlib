@@ -217,7 +217,7 @@ lemma mem_fixed_points_mul_left_cosets_iff_mem_normalizer {H : subgroup G}
     simpa [mul_inv_rev, mul_assoc] using hb₂)⟩
 
 def fixed_points_mul_left_cosets_equiv_quotient (H : subgroup G) [fintype (H : set G)] :
-  fixed_points H (quotient H) ≃
+  mul_action.fixed_points H (quotient H) ≃
   quotient (subgroup.comap ((normalizer H).subtype : normalizer H →* G) H) :=
 @subtype_quotient_equiv_quotient_subtype G (normalizer H : set G) (id _) (id _) (fixed_points _ _)
   (λ a, (@mem_fixed_points_mul_left_cosets_iff_mem_normalizer _ _ _ _inst_2 _).symm)
@@ -226,7 +226,7 @@ def fixed_points_mul_left_cosets_equiv_quotient (H : subgroup G) [fintype (H : s
 /-- The first of the Sylow theorems. -/
 theorem exists_subgroup_card_pow_prime [fintype G] (p : ℕ) : ∀ {n : ℕ} [hp : fact p.prime]
   (hdvd : p ^ n ∣ card G), ∃ H : subgroup G, fintype.card H = p ^ n
-| 0 := λ _ _, ⟨(⊥ : subgroup G), by convert card_trivial⟩
+| 0 := λ _ _, ⟨(⊥ : subgroup G), by convert card_bot⟩
 | (n+1) := λ hp hdvd,
 let ⟨H, hH2⟩ := @exists_subgroup_card_pow_prime _ hp
   (dvd.trans (pow_dvd_pow _ (nat.le_succ _)) hdvd) in

@@ -387,6 +387,15 @@ lemma continuous.measurable {f : α → γ} (hf : continuous f) :
 hf.borel_measurable.mono opens_measurable_space.borel_le
   (le_of_eq $ borel_space.measurable_eq)
 
+/-- A continuous function from an `opens_measurable_space` to a `borel_space`
+is ae-measurable. -/
+lemma continuous.ae_measurable {f : α → γ} (h : continuous f) (μ : measure α) : ae_measurable f μ :=
+h.measurable.ae_measurable
+
+lemma closed_embedding.measurable {f : α → γ} (hf : closed_embedding f) :
+  measurable f :=
+hf.continuous.measurable
+
 @[priority 100, to_additive]
 instance has_continuous_mul.has_measurable_mul [has_mul γ] [has_continuous_mul γ] :
   has_measurable_mul γ :=
@@ -427,6 +436,9 @@ rfl
 @[simp] lemma homeomorph.to_measurable_equiv_symm_coe (h : γ ≃ₜ γ₂) :
   (h.to_measurable_equiv.symm : γ₂ → γ) = h.symm :=
 rfl
+
+lemma homeomorph.measurable (h : α ≃ₜ γ) : measurable h :=
+h.continuous.measurable
 
 end homeomorph
 
@@ -524,7 +536,7 @@ end
 lemma measurable_comp_iff_of_closed_embedding {f : δ → β} (g : β → γ) (hg : closed_embedding g) :
   measurable (g ∘ f) ↔ measurable f :=
 begin
-  refine ⟨λ hf, _, λ hf, hg.continuous.measurable.comp hf⟩,
+  refine ⟨λ hf, _, λ hf, hg.measurable.comp hf⟩,
   apply measurable_of_is_closed, intros s hs,
   convert hf (hg.is_closed_map s hs).measurable_set,
   rw [@preimage_comp _ _ _ f g, preimage_image_eq _ hg.to_embedding.inj]
@@ -535,13 +547,33 @@ lemma ae_measurable_comp_iff_of_closed_embedding {f : δ → β} {μ : measure �
 begin
   by_cases h : nonempty β,
   { resetI,
-    refine ⟨λ hf, _, λ hf, hg.continuous.measurable.comp_ae_measurable hf⟩,
+    refine ⟨λ hf, _, λ hf, hg.measurable.comp_ae_measurable hf⟩,
     convert hg.measurable_inv_fun.comp_ae_measurable hf,
     ext x,
     exact (function.left_inverse_inv_fun hg.to_embedding.inj (f x)).symm },
   { have H : ¬ nonempty δ, by { contrapose! h, exact nonempty.map f h },
     simp [(measurable_of_not_nonempty H (g ∘ f)).ae_measurable,
           (measurable_of_not_nonempty H f).ae_measurable] }
+end
+
+lemma ae_measurable_comp_right_iff_of_closed_embedding {g : α → β} {μ : measure α}
+  {f : β → δ} (hg : closed_embedding g) :
+  ae_measurable (f ∘ g) μ ↔ ae_measurable f (measure.map g μ) :=
+begin
+  refine ⟨λ h, _, λ h, h.comp_measurable hg.measurable⟩,
+  by_cases hα : nonempty α,
+  swap, { simp [measure.eq_zero_of_not_nonempty hα μ] },
+  resetI,
+  refine ⟨(h.mk _) ∘ (function.inv_fun g), h.measurable_mk.comp hg.measurable_inv_fun, _⟩,
+  have : μ = measure.map (function.inv_fun g) (measure.map g μ),
+    by rw [measure.map_map hg.measurable_inv_fun hg.measurable,
+           (function.left_inverse_inv_fun hg.to_embedding.inj).comp_eq_id, measure.map_id],
+  rw this at h,
+  filter_upwards [ae_of_ae_map hg.measurable_inv_fun h.ae_eq_mk,
+    ae_map_mem_range g hg.closed_range.measurable_set μ],
+  assume x hx₁ hx₂,
+  convert hx₁,
+  exact ((function.left_inverse_inv_fun hg.to_embedding.inj).right_inv_on_range hx₂).symm,
 end
 
 section linear_order
@@ -1253,6 +1285,47 @@ L.measurable.comp φ_meas
 
 end continuous_linear_map
 
+namespace continuous_linear_map
+
+variables {𝕜 : Type*} [nondiscrete_normed_field 𝕜]
+variables {E : Type*} [normed_group E] [normed_space 𝕜 E]
+          {F : Type*} [normed_group F] [normed_space 𝕜 F]
+
+instance : measurable_space (E →L[𝕜] F) := borel _
+
+instance : borel_space (E →L[𝕜] F) := ⟨rfl⟩
+
+lemma measurable_apply [measurable_space F] [borel_space F] (x : E) :
+  measurable (λ f : E →L[𝕜] F, f x) :=
+(apply 𝕜 F x).continuous.measurable
+
+lemma measurable_apply' [measurable_space E] [opens_measurable_space E]
+  [measurable_space F] [borel_space F] :
+  measurable (λ (x : E) (f : E →L[𝕜] F), f x) :=
+measurable_pi_lambda _ $ λ f, f.measurable
+
+lemma measurable_coe [measurable_space F] [borel_space F] :
+  measurable (λ (f : E →L[𝕜] F) (x : E), f x) :=
+measurable_pi_lambda _ measurable_apply
+
+end continuous_linear_map
+
+section continuous_linear_map_nondiscrete_normed_field
+
+variables {𝕜 : Type*} [nondiscrete_normed_field 𝕜]
+variables {E : Type*} [normed_group E] [normed_space 𝕜 E] [measurable_space E] [borel_space E]
+variables {F : Type*} [normed_group F] [normed_space 𝕜 F]
+
+lemma measurable.apply_continuous_linear_map  {φ : α → F →L[𝕜] E} (hφ : measurable φ) (v : F) :
+  measurable (λ a, φ a v) :=
+(continuous_linear_map.apply 𝕜 E v).measurable.comp hφ
+
+lemma ae_measurable.apply_continuous_linear_map {φ : α → F →L[𝕜] E} {μ : measure α}
+  (hφ : ae_measurable φ μ) (v : F) : ae_measurable (λ a, φ a v) μ :=
+(continuous_linear_map.apply 𝕜 E v).measurable.comp_ae_measurable hφ
+
+end continuous_linear_map_nondiscrete_normed_field
+
 section normed_space
 variables {𝕜 : Type*} [nondiscrete_normed_field 𝕜] [complete_space 𝕜] [measurable_space 𝕜]
 variables [borel_space 𝕜]
@@ -1302,7 +1375,7 @@ protected lemma map [opens_measurable_space α] [measurable_space β] [topologic
   [t2_space β] [borel_space β] (hμ : μ.regular) (f : α ≃ₜ β) :
   (measure.map f μ).regular :=
 begin
-  have hf := f.continuous.measurable,
+  have hf := f.measurable,
   have h2f := f.to_equiv.injective.preimage_surjective,
   have h3f := f.to_equiv.surjective,
   split,
