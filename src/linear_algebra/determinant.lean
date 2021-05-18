@@ -270,6 +270,9 @@ begin
     exact ⟨v'.linear_independent, v'.span_eq⟩ },
 end
 
+lemma basis.is_unit_det (e' : basis ι R M) : is_unit (e.det e') :=
+(is_basis.iff_det e).mp ⟨e'.linear_independent, e'.span_eq⟩
+
 variables {A : Type*} [integral_domain A] [module A M]
 
 @[simp] lemma basis.det_comp (e : basis ι A M) (f : M →ₗ[A] M) (v : ι → M) :
