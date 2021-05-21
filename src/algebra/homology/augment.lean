@@ -257,7 +257,7 @@ by { cases i; refl, }
 
 @[simp] lemma cochain_complex_d_succ_succ_zero (C : cochain_complex V ℕ) (i : ℕ) :
   C.d 0 (i+2) = 0 :=
-by { rw C.shape, simp, omega, }
+by { rw C.shape, simp only [complex_shape.up_rel, zero_add], exact (nat.one_lt_succ_succ _).ne }
 
 /--
 Augmenting a truncated complex with the original object and morphism is isomorphic
